@@ -1,0 +1,22 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="primaryGradient" x1="0" y1="0" x2="128" y2="128">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 主体圆形背景 -->
+  <circle cx="64" cy="64" r="60" 
+          fill="url(#primaryGradient)"/>
+
+  <!-- 中心图形：盾牌 - 放大并简化 -->
+  <path d="M64 28L40 38V58C40 78 50 92 64 96C78 92 88 78 88 58V38L64 28Z" 
+        fill="white" 
+        fill-opacity="0.95"/>
+
+  <!-- 中心图形：动态箭头 - 放大并加粗 -->
+  <path d="M64 46L76 58H68V74H60V58H52L64 46Z" 
+        fill="#4F46E5"/>
+</svg> 

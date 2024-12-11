@@ -1,0 +1,629 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #1a1a1a;
+  overflow: hidden;
+}
+
+.container {
+  width: 300px;
+  padding: 0;
+  background: #1a1a1a;
+  color: #fff;
+  position: relative;
+  max-height: 500px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* 固定header部分 */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #1a1a1a;
+  padding: 16px;
+  margin-bottom: 0;
+  border-bottom: 1px solid #333;
+}
+
+/* 可滚动的内容区域 */
+#otp-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 7px 7px;
+}
+
+/* 自定义滚动条样式 */
+.container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.container::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  border: 2px solid #1a1a1a;
+}
+
+.container::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 优化添加视图的过渡效果 */
+#main-view, #add-view {
+  min-height: 200px;
+  transition: opacity 0.2s;
+}
+
+#add-view {
+  opacity: 0;
+}
+
+#add-view.active {
+  opacity: 1;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.icon-button svg {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.2s;
+}
+
+.icon-button:hover svg {
+  transform: scale(1.1);
+}
+
+/* 调整加号按钮的字体大小 */
+.icon-button:last-child {
+  font-size: 20px;
+}
+
+/* 修改工具提示样式 */
+.icon-button[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1001;
+  pointer-events: none;
+}
+
+/* 添加小箭头 */
+.icon-button[title]:hover::before {
+  content: '';
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-bottom-color: rgba(0, 0, 0, 0.8);
+  z-index: 1001;
+  pointer-events: none;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  background: #333;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+}
+
+input::placeholder {
+  color: #888;
+}
+
+input:focus {
+  outline: none;
+  background: #444;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+.otp-item {
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: #333;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0.13, 1.5), 
+              background 0.2s,
+              box-shadow 0.2s;
+}
+
+.otp-item:hover {
+  background: #383838;
+}
+
+/* 修改为纵向布局 */
+.otp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  cursor: grab;
+  touch-action: none;
+}
+
+.otp-content:active {
+  cursor: grabbing;
+}
+
+.otp-name {
+  font-size: 15px;
+  color: #fff;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: grab;
+  padding-right: 8px;
+}
+
+.otp-code-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.otp-code {
+  font-family: 'SF Mono', monospace;
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: #2196F3;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.time-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: #444;
+}
+
+.time-progress-bar {
+  height: 100%;
+  transition: width 0.2s linear;
+}
+
+/* 修改复制提示样式 */
+.copy-notification {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(33, 150, 243, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 1000;
+  animation: slideDown 2.5s ease;
+}
+
+@keyframes slideDown {
+  0% { 
+    opacity: 0;
+    transform: translate(-50%, -100%);
+  }
+  15% { 
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  85% { 
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% { 
+    opacity: 0;
+    transform: translate(-50%, -100%);
+  }
+}
+
+/* 移除旧的复制提示样式 */
+.otp-item.copied::after {
+  display: none;
+}
+
+/* 点击时的反馈效果 */
+.otp-item.copied .otp-code {
+  animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* 确保otp-item有相对定位以便提示定位 */
+.otp-item {
+  position: relative;
+  /* ... 其他样式保持不变 ... */
+}
+
+.context-menu {
+  position: fixed;
+  background: #262626;
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 140px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 1000;
+  animation: fadeIn 0.1s ease;
+  max-width: 280px;
+}
+
+.menu-item {
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.menu-item:hover {
+  background: #333;
+}
+
+.menu-item.delete {
+  color: #ef5350;
+}
+
+.menu-item.delete:hover {
+  background: rgba(244, 67, 54, 0.1);
+}
+
+.menu-item.export, .menu-item.import {
+  color: #64B5F6;
+}
+
+.menu-item.export:hover, .menu-item.import:hover {
+  background: rgba(33, 150, 243, 0.1);
+}
+
+/* 添加菜单分隔线 */
+.menu-item.delete {
+  border-top: 1px solid #444;
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 移除之前的删除按钮相关样式 */
+.delete-button {
+  display: none;
+}
+
+.add-methods {
+  display: flex;
+  gap: 8px;
+}
+
+.method-button {
+  flex: 1;
+  padding: 8px;
+  background: #333;
+  color: #888;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.method-button.active {
+  background: #2196F3;
+  color: white;
+}
+
+#uri-input {
+  width: 100%;
+  height: 80px;
+  padding: 12px;
+  margin: 8px 0;
+  background: #333;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.tip {
+  font-size: 12px;
+  color: #888;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* 拖拽相关样式 */
+.sortable-ghost {
+  opacity: 0.5;
+  background: #444;
+  transform: scale(0.98);
+  border: 2px dashed #2196F3;
+  box-shadow: 0 0 8px rgba(33, 150, 243, 0.2);
+}
+
+.sortable-drag {
+  opacity: 1;
+  background: #333;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.otp-item {
+  /* ... 其他样式保持不变 ... */
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0.13, 1.5), 
+              background 0.2s,
+              box-shadow 0.2s;
+}
+
+.otp-name {
+  /* ... 其他样式保持不变 ... */
+  cursor: grab;
+}
+
+.otp-name:active {
+  cursor: grabbing;
+}
+
+/* 重命名菜单项样式 */
+.menu-item.rename {
+  color: #64B5F6;
+}
+
+.menu-item.rename:hover {
+  background: rgba(33, 150, 243, 0.1);
+}
+
+/* 调整菜单分隔线 */
+.menu-item.delete {
+  border-top: 1px solid #444;
+  margin-top: 4px;
+  padding-top: 8px;
+}
+
+/* 复制密钥和出此项的样式 */
+.menu-item.copy-secret,
+.menu-item.copy-uri,
+.menu-item.export-single,
+.menu-item.export,
+.menu-item.import,
+.menu-item.rename {
+  color: #64B5F6;
+}
+
+.menu-item.copy-secret:hover,
+.menu-item.copy-uri:hover,
+.menu-item.export-single:hover,
+.menu-item.export:hover,
+.menu-item.import:hover,
+.menu-item.rename:hover {
+  background: rgba(33, 150, 243, 0.1);
+}
+
+/* 菜单分隔线样式 */
+.menu-item.separator {
+  border-top: 1px solid #444;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+
+/* 添加悬浮提示 */
+.otp-name:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -30px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #888;
+}
+
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.empty-subtext {
+  font-size: 14px;
+  color: #666;
+}
+
+/* 添加视图样式优化 */
+#add-view {
+  padding: 0 16px 16px;
+}
+
+.add-methods {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 12px;  /* 增加上下间距 */
+}
+
+.method-button {
+  flex: 1;
+  padding: 10px;  /* 增加内边距 */
+  background: #333;
+  color: #888;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;  /* 加粗字体 */
+  transition: all 0.2s;
+}
+
+.method-button.active {
+  background: #2196F3;
+  color: white;
+}
+
+
+
+input[type="text"] {
+  width: calc(100% - 24px);  /* 调整宽度 */
+  padding: 10px 12px;  /* 减小内边距 */
+  margin: 6px 0;  /* 减小上下间距 */
+  background: #333;
+  border: none;
+  border-radius: 6px;  /* 统一圆角 */
+  color: #fff;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+input[type="text"]:focus {
+  outline: none;
+  background: #444;
+}
+
+#uri-input {
+  width: calc(100% - 24px);  /* 调整宽度 */
+  height: 90px;  /* 稍微调整高度 */
+  padding: 10px 12px;
+  margin: 6px 0;
+  background: #333;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  resize: none;
+  line-height: 1.5;
+  transition: background 0.2s;
+}
+
+#uri-input:focus {
+  outline: none;
+  background: #444;
+}
+
+/* 提交按钮样式优化 */
+#add-secret, #import-uri {
+  width: 100%;  /* 与输入框宽度一致 */
+  padding: 10px;  /* 减小内边距 */
+  margin: 16px 0px 12px;  /* 调整边距 */
+  background: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;  /* 调整字体大小 */
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+#add-secret:hover, #import-uri:hover {
+  transform: translateY(-1px);
+  background: #1E88E5;  /* 稍微深一点的蓝色 */
+}
+
+/* 提示文本样式优化 */
+.tip {
+  font-size: 13px;
+  color: #888;
+  margin-top: 12px;
+  text-align: center;
+  line-height: 1.5;
+}
+ 

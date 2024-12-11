@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "FastMFA",
+  "version": "1.0",
+  "description": "快速、安全的 TOTP 双因素认证工具",
+  "permissions": [
+    "storage",
+    "clipboardRead"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  }
+} 

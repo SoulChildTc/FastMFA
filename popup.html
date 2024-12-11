@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+  <script src="lib/otplib-browser.min.js"></script>
+  <script src="lib/Sortable.min.js"></script>
+  <script src="lib/migration-parser.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- 主视图：展示OTP列表 -->
+    <div id="main-view">
+      <div class="header">
+        <h2>FastMFA</h2>
+        <div class="header-buttons">
+          <button id="export-all" class="icon-button" title="导出所有">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm5-7v3h2v-3h2l-3-3-3 3h2z"/>
+            </svg>
+          </button>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+          <button id="import-all" class="icon-button" title="导入">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm5-4v-3h2v3h2l-3 3-3-3h2z"/>
+            </svg>
+          </button>
+          <button id="show-add" class="icon-button">+</button>
+        </div>
+      </div>
+      <div id="otp-list"></div>
+    </div>
+
+    <!-- 添加视图：添加新密钥 -->
+    <div id="add-view" style="display: none;">
+      <div class="header">
+        <h2>添加 TOTP Token</h2>
+        <button id="show-main" class="icon-button">←</button>
+      </div>
+      <div class="add-methods">
+        <button id="manual-add" class="method-button active">手动添加</button>
+        <button id="uri-add" class="method-button">URI导入</button>
+      </div>
+      
+      <!-- 手动添加表单 -->
+      <div id="manual-form">
+        <input type="text" id="name" placeholder="名称" />
+        <input type="text" id="secret" placeholder="密钥" />
+        <button id="add-secret">添加</button>
+      </div>
+      
+      <!-- URI导入表单 -->
+      <div id="uri-form" style="display: none;">
+        <textarea id="uri-input" placeholder="粘贴 otpauth:// URI, 一行一个"></textarea>
+        <button id="import-uri">导入</button>
+        <div class="tip">支持从 Google Authenticator 等应用导出的 URI</div>
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
