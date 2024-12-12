@@ -6,13 +6,25 @@
   <script src="lib/otplib-browser.min.js"></script>
   <script src="lib/Sortable.min.js"></script>
   <script src="lib/migration-parser.js"></script>
+  <style>
+    .header h2 {
+      display: flex;
+      align-items: center;
+    }
+    .header h2 img {
+      margin-right: 8px;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <!-- 主视图：展示OTP列表 -->
     <div id="main-view">
       <div class="header">
-        <h2>FastMFA</h2>
+        <h2>
+          <img src="icons/icon.svg" width="24" height="24" alt="Icon">
+          FastMFA
+        </h2>
         <div class="header-buttons">
           <button id="export-all" class="icon-button" title="导出所有">
             <svg viewBox="0 0 24 24" width="16" height="16">

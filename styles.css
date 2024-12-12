@@ -234,7 +234,7 @@ button:hover {
 }
 
 .otp-code {
-  font-family: 'SF Mono', monospace;
+  font-family: 'Consolas', monospace;
   font-size: 16px;
   letter-spacing: 1px;
   color: #2196F3;
