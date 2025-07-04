@@ -6,6 +6,7 @@
   <script src="lib/otplib-browser.min.js"></script>
   <script src="lib/Sortable.min.js"></script>
   <script src="lib/migration-parser.js"></script>
+  <script src="lib/crypto-js.min.js"></script>
   <style>
     .header h2 {
       display: flex;
@@ -23,9 +24,14 @@
       <div class="header">
         <h2>
           <img src="icons/icon.svg" width="24" height="24" alt="Icon">
-          FastMFA
+          <a href="#" id="repo-link" class="title-link">FastMFA</a>
         </h2>
         <div class="header-buttons">
+          <button id="cloud-sync" class="icon-button" title="云同步">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3zm-5.55-8h-2.9v3H8l4 4 4-4h-2.55z"/>
+            </svg>
+          </button>
           <button id="export-all" class="icon-button" title="导出所有">
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm5-7v3h2v-3h2l-3-3-3 3h2z"/>
@@ -66,6 +72,62 @@
         <textarea id="uri-input" placeholder="粘贴 otpauth:// URI, 一行一个"></textarea>
         <button id="import-uri">导入</button>
         <div class="tip">支持从 Google Authenticator 等应用导出的 URI</div>
+      </div>
+    </div>
+
+    <!-- 云同步视图 -->
+    <div id="sync-view" style="display: none;">
+      <div class="header">
+        <h2>云同步</h2>
+        <button id="sync-back-main" class="icon-button">←</button>
+      </div>
+      <div class="sync-tabs">
+        <button id="tab-sync" class="sync-tab active">同步</button>
+        <button id="tab-settings" class="sync-tab">设置</button>
+      </div>
+      
+      <!-- 设置面板 -->
+      <div id="settings-panel" style="display: none;">
+        <div class="form-group">
+          <label for="github-token">GitHub Token <span class="help-icon" title="需要有 gist 权限的 GitHub 个人访问令牌">?</span></label>
+          <input type="password" id="github-token" placeholder="输入有 gist 权限的 GitHub Token" />
+        </div>
+        <div class="form-group">
+          <label for="gist-id">Gist ID <span class="help-icon" title="留空将创建新的 Gist">?</span></label>
+          <input type="text" id="gist-id" placeholder="输入 Gist ID（可选）" />
+        </div>
+        <div class="form-group">
+          <label for="gist-filename">Gist 文件名</label>
+          <input type="text" id="gist-filename" placeholder="文件名" value="fastmfa_data.json" />
+        </div>
+        <div class="form-group">
+          <label for="encrypt-key">加密密钥 <span class="help-icon" title="强烈建议设置加密密钥以保护您的数据安全">?</span></label>
+          <input type="password" id="encrypt-key" placeholder="用于加密数据的密钥" />
+        </div>
+        <button id="save-sync-settings" class="primary-button">保存设置</button>
+      </div>
+      
+      <!-- 同步面板 -->
+      <div id="sync-panel">
+        <div class="sync-info">
+          <div id="sync-status">未配置同步</div>
+          <div id="last-sync-time"></div>
+        </div>
+        <div class="sync-actions">
+          <button id="upload-to-cloud" class="sync-button">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+            </svg>
+            上传到云端
+          </button>
+          <button id="download-from-cloud" class="sync-button">
+            <svg viewBox="0 0 24 24" width="16" height="16">
+              <path fill="currentColor" d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+            </svg>
+            从云端下载
+          </button>
+        </div>
+        <div id="sync-result" class="sync-result"></div>
       </div>
     </div>
   </div>

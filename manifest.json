@@ -5,7 +5,11 @@
   "description": "快速、安全的 TOTP 双因素认证工具",
   "permissions": [
     "storage",
-    "clipboardRead"
+    "clipboardRead",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://api.github.com/*"
   ],
   "action": {
     "default_popup": "popup.html"

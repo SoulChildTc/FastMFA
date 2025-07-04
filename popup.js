@@ -1,13 +1,16 @@
 let otpList = [];
 let updateInterval = null;  // 用于存储定时器ID
 let isDragging = false;    // 用于标记是否正在拖动
+let syncSettings = {};     // 用于存储同步设置
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     // 从存储中加载密钥
-    const result = await chrome.storage.local.get('otpList');
+    const result = await chrome.storage.local.get(['otpList', 'syncSettings', 'lastSyncTime']);
     otpList = result.otpList || [];
+    syncSettings = result.syncSettings || {};
+    const lastSyncTime = result.lastSyncTime || null;
     
     // 渲染OTP列表
     updateOTPDisplay();
@@ -31,6 +34,53 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('import-all').addEventListener('click', () => {
       document.getElementById('import-file').click();
     });
+
+    // 添加标题点击跳转功能
+    document.getElementById('repo-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      chrome.tabs.create({ url: 'https://github.com/SoulChildTc/FastMFA' });
+    });
+
+    // 添加云同步功能
+    document.getElementById('cloud-sync').addEventListener('click', () => {
+      showSyncView();
+      loadSyncSettings();
+    });
+
+    // 同步页面返回按钮
+    document.getElementById('sync-back-main').addEventListener('click', () => {
+      document.getElementById('sync-view').style.display = 'none';
+      document.getElementById('sync-view').classList.remove('active');
+      document.getElementById('main-view').style.display = 'block';
+    });
+
+    // 同步页面标签切换
+    document.getElementById('tab-settings').addEventListener('click', () => {
+      document.getElementById('tab-settings').classList.add('active');
+      document.getElementById('tab-sync').classList.remove('active');
+      document.getElementById('settings-panel').style.display = 'block';
+      document.getElementById('sync-panel').style.display = 'none';
+    });
+
+    document.getElementById('tab-sync').addEventListener('click', () => {
+      document.getElementById('tab-settings').classList.remove('active');
+      document.getElementById('tab-sync').classList.add('active');
+      document.getElementById('settings-panel').style.display = 'none';
+      document.getElementById('sync-panel').style.display = 'block';
+      updateSyncStatus(lastSyncTime);
+    });
+
+    // 保存同步设置
+    document.getElementById('save-sync-settings').addEventListener('click', saveSyncSettings);
+
+    // 上传到云端
+    document.getElementById('upload-to-cloud').addEventListener('click', uploadToCloud);
+
+    // 从云端下载
+    document.getElementById('download-from-cloud').addEventListener('click', downloadFromCloud);
+    
+    // 初始化帮助图标提示
+    initHelpIconTooltips();
     
     // 启动定时更新
     startUpdateInterval();
@@ -490,3 +540,344 @@ document.getElementById('import-uri').addEventListener('click', async () => {
     alert('导入失败: ' + error.message);
   }
 }); 
+
+// 显示同步视图
+function showSyncView() {
+  const mainView = document.getElementById('main-view');
+  const syncView = document.getElementById('sync-view');
+  
+  mainView.style.display = 'none';
+  syncView.style.display = 'block';
+  // 触发重排后添加active类
+  setTimeout(() => syncView.classList.add('active'), 0);
+  
+  // 获取最近同步时间并更新状态
+  chrome.storage.local.get('lastSyncTime', (result) => {
+    updateSyncStatus(result.lastSyncTime || null);
+  });
+}
+
+// 加载同步设置
+function loadSyncSettings() {
+  if (syncSettings.githubToken) {
+    document.getElementById('github-token').value = syncSettings.githubToken;
+  }
+  
+  if (syncSettings.gistId) {
+    document.getElementById('gist-id').value = syncSettings.gistId;
+  }
+  
+  if (syncSettings.gistFilename) {
+    document.getElementById('gist-filename').value = syncSettings.gistFilename;
+  }
+  
+  if (syncSettings.encryptKey) {
+    document.getElementById('encrypt-key').value = syncSettings.encryptKey;
+  }
+}
+
+// 保存同步设置
+async function saveSyncSettings() {
+  const githubToken = document.getElementById('github-token').value.trim();
+  const gistId = document.getElementById('gist-id').value.trim();
+  const gistFilename = document.getElementById('gist-filename').value.trim() || 'fastmfa_data.json';
+  const encryptKey = document.getElementById('encrypt-key').value.trim();
+  
+  if (!githubToken) {
+    alert('请输入 GitHub Token');
+    return;
+  }
+  
+  if (!encryptKey) {
+    if (!confirm('未设置加密密钥，您的数据将以明文形式存储。确定继续吗？')) {
+      return;
+    }
+  }
+  
+  syncSettings = {
+    githubToken,
+    gistId,
+    gistFilename,
+    encryptKey
+  };
+  
+  await chrome.storage.local.set({ syncSettings });
+  
+  const notification = document.createElement('div');
+  notification.className = 'copy-notification';
+  notification.textContent = '设置已保存';
+  document.body.appendChild(notification);
+  setTimeout(() => notification.remove(), 2500);
+  
+  // 切换到同步标签
+  document.getElementById('tab-sync').click();
+}
+
+// 更新同步状态
+function updateSyncStatus(lastSyncTime) {
+  const statusElement = document.getElementById('sync-status');
+  const timeElement = document.getElementById('last-sync-time');
+  
+  if (!syncSettings.githubToken) {
+    statusElement.textContent = '未配置同步';
+    timeElement.textContent = '';
+    return;
+  }
+  
+  if (syncSettings.gistId) {
+    statusElement.textContent = '已配置同步';
+  } else {
+    statusElement.textContent = '已配置 Token，首次同步将创建 Gist';
+  }
+  
+  if (lastSyncTime) {
+    const date = new Date(lastSyncTime);
+    timeElement.textContent = `上次同步: ${date.toLocaleString()}`;
+  } else {
+    timeElement.textContent = '尚未同步';
+  }
+}
+
+// 显示同步结果
+function showSyncResult(success, message) {
+  const resultElement = document.getElementById('sync-result');
+  resultElement.textContent = message;
+  resultElement.className = 'sync-result ' + (success ? 'success' : 'error');
+  
+  // 5秒后隐藏结果
+  setTimeout(() => {
+    resultElement.className = 'sync-result';
+  }, 5000);
+}
+
+// 加密数据
+function encryptData(data, key) {
+  if (!key) return JSON.stringify(data);
+  return CryptoJS.AES.encrypt(JSON.stringify(data), key).toString();
+}
+
+// 解密数据
+function decryptData(encryptedData, key) {
+  if (!key) return JSON.parse(encryptedData);
+  const bytes = CryptoJS.AES.decrypt(encryptedData, key);
+  return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+}
+
+// 上传到云端
+async function uploadToCloud() {
+  try {
+    if (!syncSettings.githubToken) {
+      showSyncResult(false, '请先配置 GitHub Token');
+      return;
+    }
+    
+    // 加密数据
+    const encryptedData = encryptData(otpList, syncSettings.encryptKey);
+    
+    // 准备请求头
+    const headers = {
+      'Authorization': `token ${syncSettings.githubToken}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+    
+    let gistId = syncSettings.gistId;
+    
+    if (!gistId) {
+      // 创建新的 Gist
+      const createResponse = await fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          description: 'FastMFA Sync Data',
+          public: false,
+          files: {
+            [syncSettings.gistFilename]: {
+              content: encryptedData
+            }
+          }
+        })
+      });
+      
+      if (!createResponse.ok) {
+        throw new Error(`创建 Gist 失败: ${createResponse.status} ${createResponse.statusText}`);
+      }
+      
+      const createResult = await createResponse.json();
+      gistId = createResult.id;
+      
+      // 保存 Gist ID
+      syncSettings.gistId = gistId;
+      await chrome.storage.local.set({ syncSettings });
+      
+      // 更新 Gist ID 输入框
+      document.getElementById('gist-id').value = gistId;
+    } else {
+      // 更新现有 Gist
+      const updateResponse = await fetch(`https://api.github.com/gists/${gistId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          files: {
+            [syncSettings.gistFilename]: {
+              content: encryptedData
+            }
+          }
+        })
+      });
+      
+      if (!updateResponse.ok) {
+        throw new Error(`更新 Gist 失败: ${updateResponse.status} ${updateResponse.statusText}`);
+      }
+    }
+    
+    // 记录同步时间
+    const lastSyncTime = Date.now();
+    await chrome.storage.local.set({ lastSyncTime });
+    
+    // 更新同步状态
+    updateSyncStatus(lastSyncTime);
+    
+    showSyncResult(true, '成功上传到云端');
+  } catch (error) {
+    console.error('上传失败:', error);
+    showSyncResult(false, `上传失败: ${error.message}`);
+  }
+}
+
+// 从云端下载
+async function downloadFromCloud() {
+  try {
+    if (!syncSettings.githubToken || !syncSettings.gistId) {
+      showSyncResult(false, '请先配置 GitHub Token 和 Gist ID');
+      return;
+    }
+    
+    // 准备请求头
+    const headers = {
+      'Authorization': `token ${syncSettings.githubToken}`,
+      'Accept': 'application/vnd.github.v3+json'
+    };
+    
+    // 获取 Gist 内容
+    const response = await fetch(`https://api.github.com/gists/${syncSettings.gistId}`, {
+      method: 'GET',
+      headers
+    });
+    
+    if (!response.ok) {
+      throw new Error(`获取 Gist 失败: ${response.status} ${response.statusText}`);
+    }
+    
+    const gistData = await response.json();
+    const filename = syncSettings.gistFilename;
+    
+    if (!gistData.files[filename]) {
+      throw new Error(`Gist 中未找到文件: ${filename}`);
+    }
+    
+    const encryptedData = gistData.files[filename].content;
+    
+    try {
+      // 尝试解密数据
+      const decryptedData = decryptData(encryptedData, syncSettings.encryptKey);
+      
+      // 确认覆盖本地数据
+      if (confirm(`确定要从云端下载并覆盖本地数据吗？将导入 ${decryptedData.length} 个密钥。`)) {
+        otpList = decryptedData;
+        await chrome.storage.local.set({ otpList });
+        updateOTPDisplay();
+        
+        // 记录同步时间
+        const lastSyncTime = Date.now();
+        await chrome.storage.local.set({ lastSyncTime });
+        
+        // 更新同步状态
+        updateSyncStatus(lastSyncTime);
+        
+        showSyncResult(true, `成功从云端下载了 ${decryptedData.length} 个密钥`);
+      }
+    } catch (decryptError) {
+      throw new Error(`解密数据失败，请检查加密密钥是否正确: ${decryptError.message}`);
+    }
+  } catch (error) {
+    console.error('下载失败:', error);
+    showSyncResult(false, `下载失败: ${error.message}`);
+  }
+} 
+
+// 初始化帮助图标提示
+function initHelpIconTooltips() {
+  // 为所有帮助图标添加鼠标悬浮事件
+  const helpIcons = document.querySelectorAll('.help-icon');
+  
+  helpIcons.forEach(icon => {
+    // 移除默认的title属性提示，改为自定义提示
+    const tooltipText = icon.getAttribute('title');
+    icon.removeAttribute('title');
+    icon.setAttribute('data-tooltip', tooltipText);
+    
+    // 添加鼠标悬浮事件
+    icon.addEventListener('mouseenter', showTooltip);
+    icon.addEventListener('mouseleave', hideTooltip);
+  });
+}
+
+// 显示自定义提示
+function showTooltip(event) {
+  const icon = event.target;
+  const tooltipText = icon.getAttribute('data-tooltip');
+  
+  // 创建提示元素
+  const tooltip = document.createElement('div');
+  tooltip.className = 'custom-tooltip';
+  tooltip.textContent = tooltipText;
+  
+  // 添加到文档中
+  document.body.appendChild(tooltip);
+  
+  // 计算位置
+  const iconRect = icon.getBoundingClientRect();
+  const containerRect = document.querySelector('.container').getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  
+  // 默认位置（在图标下方居中）
+  let top = iconRect.bottom + 8;
+  let left = iconRect.left + (iconRect.width / 2) - (tooltipRect.width / 2);
+  
+  // 确保不超出右边界
+  if (left + tooltipRect.width > containerRect.right - 10) {
+    left = containerRect.right - tooltipRect.width - 10;
+  }
+  
+  // 确保不超出左边界
+  if (left < containerRect.left + 10) {
+    left = containerRect.left + 10;
+  }
+  
+  // 应用位置
+  tooltip.style.top = `${top}px`;
+  tooltip.style.left = `${left}px`;
+  
+  // 存储提示元素引用
+  icon.tooltip = tooltip;
+  
+  // 添加箭头
+  const arrow = document.createElement('div');
+  arrow.className = 'tooltip-arrow';
+  
+  // 计算箭头位置（箭头应该指向图标中心）
+  const arrowLeft = iconRect.left + (iconRect.width / 2) - left - 4;
+  arrow.style.left = `${arrowLeft}px`;
+  
+  tooltip.appendChild(arrow);
+}
+
+// 隐藏自定义提示
+function hideTooltip(event) {
+  const icon = event.target;
+  if (icon.tooltip) {
+    icon.tooltip.remove();
+    icon.tooltip = null;
+  }
+} 

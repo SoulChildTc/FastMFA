@@ -81,6 +81,16 @@ h2 {
   color: #fff;
 }
 
+.title-link {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.title-link:hover {
+  color: #2196F3;
+}
+
 .header-buttons {
   display: flex;
   gap: 8px;
@@ -625,5 +635,229 @@ input[type="text"]:focus {
   margin-top: 12px;
   text-align: center;
   line-height: 1.5;
+}
+ 
+/* 云同步视图样式 */
+#sync-view {
+  padding: 0 16px 16px;
+  width: 100%;
+  box-sizing: border-box;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+#sync-view.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sync-tabs {
+  display: flex;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #444;
+}
+
+.sync-tab {
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #888;
+  position: relative;
+  transition: color 0.3s;
+}
+
+.sync-tab.active {
+  color: #2196F3;
+}
+
+.sync-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #2196F3;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #ccc;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #444;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #333;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #2196F3;
+  background: #3a3a3a;
+}
+
+.form-group .tip {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+.primary-button {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.primary-button:hover {
+  background-color: #1976D2;
+  transform: translateY(-1px);
+}
+
+.sync-info {
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: #333;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+#sync-status {
+  font-weight: bold;
+  margin-bottom: 4px;
+  color: #fff;
+}
+
+#last-sync-time {
+  font-size: 12px;
+  color: #888;
+}
+
+.sync-actions {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sync-button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: #333;
+  border: 1px solid #444;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #fff;
+}
+
+.sync-button:hover {
+  background-color: #3a3a3a;
+  transform: translateY(-1px);
+}
+
+.sync-button svg {
+  fill: #2196F3;
+}
+
+.sync-result {
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  display: none;
+  margin-top: 8px;
+}
+
+.sync-result.success {
+  display: block;
+  background-color: rgba(46, 125, 50, 0.2);
+  color: #81c784;
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+.sync-result.error {
+  display: block;
+  background-color: rgba(198, 40, 40, 0.2);
+  color: #e57373;
+  border: 1px solid rgba(198, 40, 40, 0.3);
+}
+ 
+/* 帮助图标样式 */
+.help-icon {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  background: #444;
+  color: #aaa;
+  border-radius: 50%;
+  font-size: 11px;
+  margin-left: 6px;
+  cursor: help;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.help-icon:hover {
+  background: #2196F3;
+  color: #fff;
+}
+
+/* 自定义提示框样式 */
+.custom-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-width: 220px;
+  z-index: 1001;
+  text-align: center;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  animation: fadeIn 0.2s;
+}
+
+/* 提示框箭头 */
+.tooltip-arrow {
+  position: absolute;
+  top: -8px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid rgba(0, 0, 0, 0.8);
+}
+
+/* 移除旧的提示样式 */
+.help-icon[title]:hover::after,
+.help-icon[title]:hover::before {
+  display: none;
 }
  
