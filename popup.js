@@ -2,6 +2,9 @@ let otpList = [];
 let updateInterval = null;  // 用于存储定时器ID
 let isDragging = false;    // 用于标记是否正在拖动
 let syncSettings = {};     // 用于存储同步设置
+let searchQuery = '';      // 当前搜索关键字（小写）
+let highlightIndex = -1;   // 键盘高亮项的索引（-1 表示无，相对于 visibleList）
+const SEARCH_THRESHOLD = 4; // token 数量 ≥ 此值才显示搜索框
 
 // 初始化
 document.addEventListener('DOMContentLoaded', async () => {
@@ -52,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('sync-view').style.display = 'none';
       document.getElementById('sync-view').classList.remove('active');
       document.getElementById('main-view').style.display = 'block';
+      clearSearch();
     });
 
     // 同步页面标签切换
@@ -82,6 +86,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 初始化帮助图标提示
     initHelpIconTooltips();
     
+    // 搜索框事件绑定
+    const searchInput = document.getElementById('search-input');
+    const searchClear = document.getElementById('search-clear');
+    
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.trim().toLowerCase();
+      highlightIndex = searchQuery ? 0 : -1;
+      searchClear.style.display = searchQuery ? 'flex' : 'none';
+      updateOTPDisplay();
+      // 搜索时禁用拖拽
+      const container = document.getElementById('otp-list');
+      if (container.sortable) {
+        container.sortable.option('disabled', searchQuery !== '');
+      }
+    });
+    
+    searchInput.addEventListener('keydown', (e) => {
+      const visibleList = getVisibleList();
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (searchQuery) {
+          clearSearch();
+        } else {
+          searchInput.blur();
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (visibleList.length > 0) {
+          copyOtpAt(visibleList[0].originalIndex);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (visibleList.length > 0) {
+          highlightIndex = highlightIndex === -1 ? 0 : Math.min(highlightIndex + 1, visibleList.length - 1);
+          updateOTPDisplay();
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (visibleList.length > 0) {
+          highlightIndex = highlightIndex === -1 ? visibleList.length - 1 : Math.max(highlightIndex - 1, 0);
+          updateOTPDisplay();
+        }
+      }
+    });
+    
+    searchClear.addEventListener('click', () => {
+      clearSearch();
+      searchInput.focus();
+    });
+    
+    // 自动聚焦搜索框（如果可见）
+    updateSearchBarVisibility();
+    const searchBar = document.getElementById('search-bar');
+    if (searchBar.style.display !== 'none') {
+      setTimeout(() => searchInput.focus(), 0);
+    }
+    
     // 启动定时更新
     startUpdateInterval();
   } catch (error) {
@@ -111,7 +172,7 @@ function initSortable() {
     container.sortable.destroy();
   }
   
-  new Sortable(container, {
+  const sortable = new Sortable(container, {
     animation: 150,
     handle: '.otp-content',
     ghostClass: 'sortable-ghost',
@@ -137,10 +198,77 @@ function initSortable() {
       updateOTPDisplay();  // 立即更新一次显示
     }
   });
+  
+  container.sortable = sortable;
+  
+  // 搜索激活时禁用拖拽
+  if (searchQuery) {
+    sortable.option('disabled', true);
+  }
+}
+
+// 清空搜索
+function clearSearch() {
+  searchQuery = '';
+  highlightIndex = -1;
+  const searchInput = document.getElementById('search-input');
+  const searchClear = document.getElementById('search-clear');
+  searchInput.value = '';
+  searchClear.style.display = 'none';
+  // 恢复拖拽
+  const container = document.getElementById('otp-list');
+  if (container.sortable) {
+    container.sortable.option('disabled', false);
+  }
+  updateOTPDisplay();
+}
+
+// 获取可见列表（过滤搜索结果，带原始索引）
+function getVisibleList() {
+  if (!searchQuery) {
+    return otpList.map((item, i) => ({ item, originalIndex: i }));
+  }
+  return otpList
+    .map((item, i) => ({ item, originalIndex: i }))
+    .filter(({ item }) => item.name.toLowerCase().includes(searchQuery));
+}
+
+// 复制指定原始索引的 OTP
+function copyOtpAt(originalIndex) {
+  const item = otpList[originalIndex];
+  const otp = generateTOTP(item.secret);
+  navigator.clipboard.writeText(otp).then(() => {
+    const notification = document.createElement('div');
+    notification.className = 'copy-notification';
+    notification.textContent = '复制成功';
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 2500);
+    
+    // 视觉反馈：找到对应的 DOM 元素并添加 copied class
+    const otpItems = document.querySelectorAll('.otp-item');
+    const visibleList = getVisibleList();
+    const visibleIndex = visibleList.findIndex(v => v.originalIndex === originalIndex);
+    if (visibleIndex >= 0 && otpItems[visibleIndex]) {
+      otpItems[visibleIndex].classList.add('copied');
+      setTimeout(() => otpItems[visibleIndex].classList.remove('copied'), 500);
+    }
+  });
+}
+
+// 更新搜索栏可见性
+function updateSearchBarVisibility() {
+  const searchBar = document.getElementById('search-bar');
+  if (otpList.length >= SEARCH_THRESHOLD) {
+    searchBar.style.display = 'flex';
+  } else {
+    searchBar.style.display = 'none';
+    if (searchQuery) clearSearch();
+  }
 }
 
 // 在更新显示后初始化排序
 function updateOTPDisplay() {
+  updateSearchBarVisibility();
   const container = document.getElementById('otp-list');
   container.innerHTML = '';
   
@@ -157,165 +285,172 @@ function updateOTPDisplay() {
     return;
   }
   
-  otpList.forEach((item, index) => {
-    const otp = generateTOTP(item.secret);
-    const timeRemaining = 30 - Math.floor(Date.now() / 1000 % 30);
-    const progress = (timeRemaining / 30) * 100;
-    
-    let codeColor;
-    if (timeRemaining > 10) {
-      codeColor = '#2196F3';
-    } else if (timeRemaining > 5) {
-      codeColor = '#FFA726';
-    } else {
-      codeColor = '#EF5350';
-    }
-    
-    const div = document.createElement('div');
-    div.className = 'otp-item';
-    div.innerHTML = `
-      <div class="otp-content">
-        <div class="otp-name" title="${item.name}">${item.name}</div>
-        <div class="otp-code-row">
-          <span class="otp-code" style="color: ${codeColor}">${otp}</span>
-        </div>
-      </div>
-      <div class="time-progress">
-        <div class="time-progress-bar" style="width: ${progress}%; background: linear-gradient(90deg, ${codeColor}, ${codeColor}88)"></div>
-      </div>
+  const visibleList = getVisibleList();
+  
+  if (searchQuery && visibleList.length === 0) {
+    // 搜索无结果
+    const emptyState = document.createElement('div');
+    emptyState.className = 'search-empty';
+    emptyState.innerHTML = `
+      <div class="search-empty-icon">🔍</div>
+      <div class="search-empty-text">未找到匹配的 token</div>
     `;
-    
-    // 点击复制
-    div.addEventListener('click', () => {
-      navigator.clipboard.writeText(otp).then(() => {
-        const notification = document.createElement('div');
-        notification.className = 'copy-notification';
-        notification.textContent = '复制成功';
-        document.body.appendChild(notification);
-        setTimeout(() => notification.remove(), 2500);
-        
-        div.classList.add('copied');
-        setTimeout(() => div.classList.remove('copied'), 500);
-      });
-    });
-    
-    // 右键菜单
-    div.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
+    container.appendChild(emptyState);
+  } else {
+    visibleList.forEach(({ item, originalIndex }, visibleIndex) => {
+      const otp = generateTOTP(item.secret);
+      const timeRemaining = 30 - Math.floor(Date.now() / 1000 % 30);
+      const progress = (timeRemaining / 30) * 100;
       
-      // 移除任何已存在的上下文菜单
-      const existingMenu = document.querySelector('.context-menu');
-      if (existingMenu) {
-        existingMenu.remove();
+      let codeColor;
+      if (timeRemaining > 10) {
+        codeColor = '#2196F3';
+      } else if (timeRemaining > 5) {
+        codeColor = '#FFA726';
+      } else {
+        codeColor = '#EF5350';
       }
       
-      const menu = document.createElement('div');
-      menu.className = 'context-menu';
-      menu.innerHTML = `
-        <div class="menu-item copy-secret">复制密钥</div>
-        <div class="menu-item copy-uri">复制 URI</div>
-        <div class="menu-item export-single">导出此项</div>
-        <div class="menu-item separator rename">重命名</div>
-        <div class="menu-item delete">删除</div>
+      const div = document.createElement('div');
+      div.className = 'otp-item' + (highlightIndex === visibleIndex ? ' highlight' : '');
+      div.innerHTML = `
+        <div class="otp-content">
+          <div class="otp-name" title="${item.name}">${item.name}</div>
+          <div class="otp-code-row">
+            <span class="otp-code" style="color: ${codeColor}">${otp}</span>
+          </div>
+        </div>
+        <div class="time-progress">
+          <div class="time-progress-bar" style="width: ${progress}%; background: linear-gradient(90deg, ${codeColor}, ${codeColor}88)"></div>
+        </div>
       `;
       
-      // 先添加到文档中以获取实际尺寸
-      document.body.appendChild(menu);
-      
-      // 获取容器和菜单的尺寸
-      const containerRect = document.querySelector('.container').getBoundingClientRect();
-      const menuRect = menu.getBoundingClientRect();
-      
-      // 计算合适的位置
-      let left = e.clientX;
-      let top = e.clientY;
-      
-      // 检查右边界
-      if (left + menuRect.width > containerRect.right) {
-        left = containerRect.right - menuRect.width - 5;
-      }
-      
-      // 检查下边界
-      if (top + menuRect.height > containerRect.bottom) {
-        top = containerRect.bottom - menuRect.height - 5;
-      }
-      
-      // 确保不超出左边界和上边界
-      left = Math.max(containerRect.left + 5, left);
-      top = Math.max(containerRect.top + 5, top);
-      
-      // 应用计算后的位置
-      menu.style.left = `${left}px`;
-      menu.style.top = `${top}px`;
-      
-      // 添加复制密钥功能
-      menu.querySelector('.copy-secret').addEventListener('click', () => {
-        navigator.clipboard.writeText(item.secret).then(() => {
-          const notification = document.createElement('div');
-          notification.className = 'copy-notification';
-          notification.textContent = '密钥已复制';
-          document.body.appendChild(notification);
-          setTimeout(() => notification.remove(), 2500);
-        });
-        menu.remove();
+      // 点击复制
+      div.addEventListener('click', () => {
+        copyOtpAt(originalIndex);
       });
       
-      // 添加复制 URI 功能
-      menu.querySelector('.copy-uri').addEventListener('click', () => {
-        const uri = `otpauth://totp/${encodeURIComponent(item.name)}?secret=${item.secret}`;
-        navigator.clipboard.writeText(uri).then(() => {
-          const notification = document.createElement('div');
-          notification.className = 'copy-notification';
-          notification.textContent = 'URI 已复制';
-          document.body.appendChild(notification);
-          setTimeout(() => notification.remove(), 2500);
-        });
-        menu.remove();
-      });
-      
-      // 添加导出单个项目功能
-      menu.querySelector('.export-single').addEventListener('click', () => {
-        const data = JSON.stringify([item], null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `fastmfa_${item.name}_backup.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        menu.remove();
-      });
-      
-      // 重命名处理
-      menu.querySelector('.rename').addEventListener('click', async () => {
-        const newName = prompt('请输入新名称', item.name);
-        if (newName && newName.trim() !== '') {
-          otpList[index].name = newName.trim();
-          await chrome.storage.local.set({ otpList });
-          updateOTPDisplay();
+      // 右键菜单
+      div.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        
+        // 移除任何已存在的上下文菜单
+        const existingMenu = document.querySelector('.context-menu');
+        if (existingMenu) {
+          existingMenu.remove();
         }
-        menu.remove();
-      });
-      
-      // 删除处理
-      menu.querySelector('.delete').addEventListener('click', () => {
-        if (confirm('确定要删除这个密钥吗？')) {
-          deleteSecret(index);
+        
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.innerHTML = `
+          <div class="menu-item copy-secret">复制密钥</div>
+          <div class="menu-item copy-uri">复制 URI</div>
+          <div class="menu-item export-single">导出此项</div>
+          <div class="menu-item separator rename">重命名</div>
+          <div class="menu-item delete">删除</div>
+        `;
+        
+        // 先添加到文档中以获取实际尺寸
+        document.body.appendChild(menu);
+        
+        // 获取容器和菜单的尺寸
+        const containerRect = document.querySelector('.container').getBoundingClientRect();
+        const menuRect = menu.getBoundingClientRect();
+        
+        // 计算合适的位置
+        let left = e.clientX;
+        let top = e.clientY;
+        
+        // 检查右边界
+        if (left + menuRect.width > containerRect.right) {
+          left = containerRect.right - menuRect.width - 5;
         }
-        menu.remove();
-      });
-      
-      // 点击其他地方关闭菜单
-      document.addEventListener('click', function closeMenu(e) {
-        if (!menu.contains(e.target)) {
+        
+        // 检查下边界
+        if (top + menuRect.height > containerRect.bottom) {
+          top = containerRect.bottom - menuRect.height - 5;
+        }
+        
+        // 确保不超出左边界和上边界
+        left = Math.max(containerRect.left + 5, left);
+        top = Math.max(containerRect.top + 5, top);
+        
+        // 应用计算后的位置
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+        
+        // 添加复制密钥功能
+        menu.querySelector('.copy-secret').addEventListener('click', () => {
+          navigator.clipboard.writeText(item.secret).then(() => {
+            const notification = document.createElement('div');
+            notification.className = 'copy-notification';
+            notification.textContent = '密钥已复制';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2500);
+          });
           menu.remove();
-          document.removeEventListener('click', closeMenu);
-        }
+        });
+        
+        // 添加复制 URI 功能
+        menu.querySelector('.copy-uri').addEventListener('click', () => {
+          const uri = `otpauth://totp/${encodeURIComponent(item.name)}?secret=${item.secret}`;
+          navigator.clipboard.writeText(uri).then(() => {
+            const notification = document.createElement('div');
+            notification.className = 'copy-notification';
+            notification.textContent = 'URI 已复制';
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2500);
+          });
+          menu.remove();
+        });
+        
+        // 添加导出单个项目功能
+        menu.querySelector('.export-single').addEventListener('click', () => {
+          const data = JSON.stringify([item], null, 2);
+          const blob = new Blob([data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `fastmfa_${item.name}_backup.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          menu.remove();
+        });
+        
+        // 重命名处理
+        menu.querySelector('.rename').addEventListener('click', async () => {
+          const newName = prompt('请输入新名称', item.name);
+          if (newName && newName.trim() !== '') {
+            otpList[originalIndex].name = newName.trim();
+            await chrome.storage.local.set({ otpList });
+            updateOTPDisplay();
+          }
+          menu.remove();
+        });
+        
+        // 删除处理
+        menu.querySelector('.delete').addEventListener('click', () => {
+          if (confirm('确定要删除这个密钥吗？')) {
+            deleteSecret(originalIndex);
+          }
+          menu.remove();
+        });
+        
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', function closeMenu(e) {
+          if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+          }
+        });
       });
+      
+      container.appendChild(div);
     });
-    
-    container.appendChild(div);
-  });
+  }
+  
+  // 在列表更新后重新初始化排序
+  initSortable();
   
   // 在列表更新后重新初始化排序
   initSortable();
@@ -424,6 +559,7 @@ document.getElementById('show-main').addEventListener('click', () => {
   
   document.getElementById('main-view').style.display = 'block';
   document.getElementById('add-view').style.display = 'none';
+  clearSearch();
 });
 
 // 添加文件导入处理
