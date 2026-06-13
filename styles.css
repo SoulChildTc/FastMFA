@@ -938,4 +938,112 @@ input[type="text"]:focus {
 .otp-item.highlight {
   box-shadow: 0 0 0 2px #00BCD4;
 }
+
+/* 文件输入隐藏（兼容浏览器文件对话框触发） */
+.file-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 导入确认弹框 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-dialog {
+  background: #262626;
+  border-radius: 12px;
+  padding: 24px;
+  width: 260px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #fff;
+}
+
+.modal-body {
+  font-size: 14px;
+  color: #ccc;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn-cancel {
+  background: #444;
+  color: #ccc;
+}
+
+.modal-btn-cancel:hover {
+  background: #555;
+}
+
+.modal-btn-confirm {
+  background: #2196F3;
+  color: #fff;
+}
+
+.modal-btn-confirm:hover {
+  background: #1E88E5;
+}
+
+/* 导入通知 Toast */
+.import-toast {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #2196F3;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 3000;
+  animation: toastIn 0.25s ease;
+  white-space: nowrap;
+}
+
+.import-toast--error {
+  background: #e53935;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate(-50%, -100%); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
  

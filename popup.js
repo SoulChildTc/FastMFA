@@ -33,11 +33,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       URL.revokeObjectURL(url);
     });
     
-    // 添加导入功能
-    document.getElementById('import-all').addEventListener('click', () => {
-      document.getElementById('import-file').click();
-    });
-
     // 添加标题点击跳转功能
     document.getElementById('repo-link').addEventListener('click', (e) => {
       e.preventDefault();
@@ -590,18 +585,48 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
     });
     
     // 确认导入
-    if (confirm(`确定要导入 ${importedData.length} 个密钥吗？`)) {
+    const confirmed = await showConfirm(`确定要导入 ${importedData.length} 个密钥吗？`);
+    if (confirmed) {
       otpList = [...otpList, ...importedData];
       await chrome.storage.local.set({ otpList });
       updateOTPDisplay();
+      showImportToast(`成功导入 ${importedData.length} 个密钥`);
     }
   } catch (error) {
-    alert('导入失败: ' + error.message);
+    showImportToast('导入失败: ' + error.message, true);
   }
   
   // 清除文件选择
   e.target.value = '';
 });
+
+// 自定义确认弹框（替代原生 confirm）
+function showConfirm(message) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('import-confirm');
+    document.getElementById('import-confirm-msg').textContent = message;
+    overlay.style.display = 'flex';
+
+    const cleanup = () => {
+      overlay.style.display = 'none';
+      document.getElementById('import-confirm-ok').onclick = null;
+      document.getElementById('import-confirm-cancel').onclick = null;
+    };
+
+    document.getElementById('import-confirm-ok').onclick = () => { cleanup(); resolve(true); };
+    document.getElementById('import-confirm-cancel').onclick = () => { cleanup(); resolve(false); };
+  });
+}
+
+// 导入通知 Toast（替代原生 alert）
+function showImportToast(message, isError = false) {
+  const toast = document.createElement('div');
+  toast.className = 'import-toast';
+  toast.textContent = message;
+  if (isError) toast.classList.add('import-toast--error');
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
 
 // 切换添加方式
 document.getElementById('manual-add').addEventListener('click', () => {

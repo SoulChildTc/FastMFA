@@ -37,12 +37,12 @@
               <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm5-7v3h2v-3h2l-3-3-3 3h2z"/>
             </svg>
           </button>
-          <input type="file" id="import-file" accept=".json" style="display: none;">
-          <button id="import-all" class="icon-button" title="导入">
+          <input type="file" id="import-file" accept=".json" class="file-input-hidden">
+          <label for="import-file" class="icon-button" title="导入">
             <svg viewBox="0 0 24 24" width="16" height="16">
               <path fill="currentColor" d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6zm5-4v-3h2v3h2l-3 3-3-3h2z"/>
             </svg>
-          </button>
+          </label>
           <button id="show-add" class="icon-button">+</button>
         </div>
       </div>
@@ -54,6 +54,18 @@
         <button id="search-clear" class="search-clear" title="清空" style="display: none;">×</button>
       </div>
       <div id="otp-list"></div>
+    </div>
+
+    <!-- 导入确认弹框 -->
+    <div id="import-confirm" class="modal-overlay" style="display: none;">
+      <div class="modal-dialog">
+        <div class="modal-title">确认导入</div>
+        <div class="modal-body" id="import-confirm-msg"></div>
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" id="import-confirm-cancel">取消</button>
+          <button class="modal-btn modal-btn-confirm" id="import-confirm-ok">确认导入</button>
+        </div>
+      </div>
     </div>
 
     <!-- 添加视图：添加新密钥 -->
