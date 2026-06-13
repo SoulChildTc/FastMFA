@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     startUpdateInterval();
   } catch (error) {
     console.error('初始化失败:', error);
-    alert('初始化失败，请重试: ' + error);
+    showToast('初始化失败: ' + error);
   }
 });
 
@@ -414,9 +414,9 @@ function updateOTPDisplay() {
         
         // 重命名处理
         menu.querySelector('.rename').addEventListener('click', async () => {
-          const newName = prompt('请输入新名称', item.name);
-          if (newName && newName.trim() !== '') {
-            otpList[originalIndex].name = newName.trim();
+          const newName = await showPrompt(item.name);
+          if (newName) {
+            otpList[originalIndex].name = newName;
             await chrome.storage.local.set({ otpList });
             updateOTPDisplay();
           }
@@ -424,8 +424,8 @@ function updateOTPDisplay() {
         });
         
         // 删除处理
-        menu.querySelector('.delete').addEventListener('click', () => {
-          if (confirm('确定要删除这个密钥吗？')) {
+        menu.querySelector('.delete').addEventListener('click', async () => {
+          if (await showConfirm('确定要删除这个密钥吗？')) {
             deleteSecret(originalIndex);
           }
           menu.remove();
@@ -476,17 +476,17 @@ async function addNewSecret() {
     const secret = document.getElementById('secret').value.replace(/\s/g, '').toUpperCase();
     
     if (!name) {
-      alert('请输入名称');
+      showToast('请输入名称');
       return;
     }
     
     if (!secret) {
-      alert('请输入密钥');
+      showToast('请输入密钥');
       return;
     }
     
     if (!validateSecret(secret)) {
-      alert('密钥格式无效，请检查后重试');
+      showToast('密钥格式无效，请检查后重试');
       return;
     }
     
@@ -494,7 +494,7 @@ async function addNewSecret() {
     try {
       generateTOTP(secret);
     } catch (e) {
-      alert('密钥无效，请检查后重试');
+      showToast('密钥无效，请检查后重试');
       return;
     }
     
@@ -517,7 +517,7 @@ async function addNewSecret() {
     updateOTPDisplay();
   } catch (error) {
     console.error('添加密钥失败:', error);
-    alert('添加失败，请重试');
+    showToast('添加失败，请重试');
   }
 }
 
@@ -590,10 +590,10 @@ document.getElementById('import-file').addEventListener('change', async (e) => {
       otpList = [...otpList, ...importedData];
       await chrome.storage.local.set({ otpList });
       updateOTPDisplay();
-      showImportToast(`成功导入 ${importedData.length} 个密钥`);
+      showToast(`成功导入 ${importedData.length} 个密钥`);
     }
   } catch (error) {
-    showImportToast('导入失败: ' + error.message, true);
+    showToast('导入失败: ' + error.message, true);
   }
   
   // 清除文件选择
@@ -618,14 +618,41 @@ function showConfirm(message) {
   });
 }
 
-// 导入通知 Toast（替代原生 alert）
-function showImportToast(message, isError = false) {
-  const toast = document.createElement('div');
-  toast.className = 'import-toast';
-  toast.textContent = message;
-  if (isError) toast.classList.add('import-toast--error');
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 2500);
+// 全局 Toast 通知（替代原生 alert）
+function showToast(message, isError = false) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = message;
+  if (isError) el.classList.add('toast--error');
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2500);
+}
+
+// 自定义重命名输入框（替代原生 prompt）
+function showPrompt(defaultValue) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('rename-modal');
+    const input = document.getElementById('rename-input');
+    input.value = defaultValue;
+    overlay.style.display = 'flex';
+    setTimeout(() => input.focus(), 100);
+
+    const cleanup = () => { overlay.style.display = 'none'; };
+
+    const confirm = () => {
+      const val = input.value.trim();
+      cleanup();
+      resolve(val || null);
+    };
+
+    document.getElementById('rename-ok').onclick = confirm;
+    document.getElementById('rename-cancel').onclick = () => { cleanup(); resolve(null); };
+
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') confirm();
+      if (e.key === 'Escape') { cleanup(); resolve(null); }
+    };
+  });
 }
 
 // 切换添加方式
@@ -695,10 +722,10 @@ document.getElementById('import-uri').addEventListener('click', async () => {
       document.getElementById('uri-input').value = '';
       document.getElementById('show-main').click();
       
-      alert(`成功导入 ${imported.length} 个密钥`);
+      showToast(`成功导入 ${imported.length} 个密钥`);
     }
   } catch (error) {
-    alert('导入失败: ' + error.message);
+    showToast('导入失败: ' + error.message, true);
   }
 }); 
 
@@ -745,12 +772,12 @@ async function saveSyncSettings() {
   const encryptKey = document.getElementById('encrypt-key').value.trim();
   
   if (!githubToken) {
-    alert('请输入 GitHub Token');
+    showToast('请输入 GitHub Token');
     return;
   }
   
   if (!encryptKey) {
-    if (!confirm('未设置加密密钥，您的数据将以明文形式存储。确定继续吗？')) {
+    if (!await showConfirm('未设置加密密钥，您的数据将以明文形式存储。确定继续吗？')) {
       return;
     }
   }
@@ -944,7 +971,7 @@ async function downloadFromCloud() {
       const decryptedData = decryptData(encryptedData, syncSettings.encryptKey);
       
       // 确认覆盖本地数据
-      if (confirm(`确定要从云端下载并覆盖本地数据吗？将导入 ${decryptedData.length} 个密钥。`)) {
+      if (await showConfirm(`确定要从云端下载并覆盖本地数据吗？将导入 ${decryptedData.length} 个密钥。`)) {
         otpList = decryptedData;
         await chrome.storage.local.set({ otpList });
         updateOTPDisplay();

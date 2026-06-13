@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3] - 2026-06-13
+
+### Fixed
+- 修复重命名 `prompt()` 在 MV3 popup 中无法正常弹出的问题
+  - 改用自定义 Modal 内嵌输入框，支持 Enter 确认 / Escape 取消
+- 修复删除确认、云端下载确认等 `confirm()` 在 popup 中的兼容性问题
+- 替换所有 `alert()` 为 Toast 通知，避免原生对话框在扩展弹出窗中的显示异常
+
+### Changed
+- 全局统一：所有原生 `alert()` / `confirm()` / `prompt()` 替换为自定义组件
+
 ## [1.2] - 2026-06-13
 
 ### Fixed
